@@ -4,8 +4,13 @@
 
 This is a simple demo of an THREE project with XR Fragments-enriched gltf models (which you can edit).
 
-> Get started in 2 different ways:
+> NOTE: this repo is for developers, designers will prefer [xrfragment-helloworld](https://github.com/coderofsalvation/xrfragment-helloworld) to get started
 
+## Getting started
+
+* familiarize yourself with XR Fragments using [these youtube video's](https://www.youtube.com/playlist?list=PLctjJGlTmeE64XPSQER2BSbjmqVGaWM4J) and the [documentation](https://xrfragment.org)
+
+choose between 2 different ways:
 * Press the fork button, and it will automatically host a clone at your own URL
 * [Download the ZIP](https://github.com/coderofsalvation/xrfragment-three-helloworld/archive/refs/heads/main.zip) and edit/run it locally (in your browser)
 
