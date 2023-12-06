@@ -4,8 +4,24 @@
 		<title>THREE.js - xrfragment sandbox</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="https://xrfragment.org/example/assets/css/axist.min.css" />
+    <link type="text/css" rel="stylesheet" href="https://xrfragment.org/example/assets/css/style.css"/>
+    <script src="https://xrfragment.org/example/assets/js/qr.js"></script>
 	</head>
 	<body>
+    <div id="overlay" x-data="{ urls: ['#pos=0,1.6,15','#pos=0,1.6,15&rot=0,360,0'] }">
+      <img src="https://xrfragment.org/example/assets/logo.png" class="logo"/>
+			<input type="submit" value="load 3D file"></input>
+      <input type="text" id="uri" value="" onchange="XRF.navigator.to( $('#uri').value )" style="display:none"/> 
+    </div>
+
+    <a class="btn-foot" id="source" target="_blank" href="https://github.com/coderofsalvation/xrfragment-helloworld">➕ clone project</a> 
+    <a class="btn-foot" id="embed" target="_blank" onclick="embed()">🔗 share</a> 
+    <a class="btn-foot" id="model" target="_blank" href="index.gltf">⬇️  scene</a> 
+    <a class="btn-foot" id="more" target="_blank" >XRF</a> 
+		<textarea style="display:none"></textarea>
+    <canvas id="qrcode" style="display:none" width="300" height="300"></canvas>
+		
 		<!-- Import maps polyfill -->
 		<!-- Remove this when import maps will be widely supported -->
 		<script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
@@ -21,8 +37,9 @@
 		<script type="module">
 			import * as THREE from 'three';
 
-			import xrf from './xrfragment.three.module.js';
+			import xrf from "https://xrfragment.org/dist/xrfragment.three.module.js";
 
+			import { loadFile, setupConsole, setupUrlBar, notify } from "https://xrfragment.org/example/assets/js/utils.js";
 			import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 			import { Lensflare, LensflareElement } from 'three/addons/objects/Lensflare.js';
 			import { BoxLineGeometry } from 'three/addons/geometries/BoxLineGeometry.js';
@@ -49,7 +66,7 @@
 			};
 
 			init();
-      alert("for now, back-button (navigation) is only implemented in the AFRAME demo-implementation")
+      notify("NOTE: only AFRAME demo has immersive back-button (for now)")
 
 			function init() {
 
@@ -84,14 +101,56 @@
           camera:cameraRig,
           scene,
           renderer,
-          debug: true,
           loaders: { gltf: GLTFLoader, fbx: FBXLoader }, // which 3D assets (extensions) to check for XR fragments?
         })
 
+
+        // optional: react/extend/hook into XR fragment
+        XRF.env = (xrf,v,opts) => {
+          let { mesh, model, camera, scene, renderer, THREE} = opts
+          xrf(v,opts)
+        }
+
+        // *TODO* lowhanging fruit: during XR fragments-query milestone, target objects using XR fragment queries
+        //                          to provide jquery-ish interface for three.js)
+        //
+        // XRF('example1.gltf#q=.foo', (objs) => {
+        //
+        // })
+
         window.XRF = XRF // expose to form
 
-				let file = document.location.search.length > 2 ? document.location.search.substr(1) + document.location.hash : 'scene.gltf'
+				let file = document.location.search.length > 2 ? document.location.search.substr(1) + document.location.hash : 'index.gltf#pos=0,1,20'
+
+        // optional decoration of href event        
+        XRF.addEventListener('href',(e) => {
+          if( e.click ){
+            const { mesh, model, camera, scene, renderer, THREE} = e.XRF
+            const url       = e.xrf.string
+            const isExtern  = url[0] != '#'
+            const promise   = e.promise() // promisify event
+            document.querySelector('#model').setAttribute('href',url.replace(/.*\?/,'') )
+            promise.resolve()
+          }
+        })
+
 				XRF.navigator.to( file )
+
+
+				// setup mouse controls
+				//controls = new OrbitControls( camera, renderer.domElement );
+				//controls.listenToKeyEvents( window ); // optional
+				//controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+				//controls.dampingFactor = 0.1;
+
+				//controls.screenSpacePanning = false;
+
+				//controls.minDistance = 0.1;
+				//controls.maxDistance = 5000;
+				//controls.maxPolarAngle = Math.PI / 2;
+				//controls.target = new THREE.Vector3(0,1.6,0)
+
+        //controls.update()
 
 				const geometry = new THREE.BufferGeometry();
 				geometry.setFromPoints( [ new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, - 5 ) ] );
@@ -115,20 +174,9 @@
 				controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
 				cameraRig.add( controllerGrip2 );
 
-				// GUI
-				function onChange() {
-						renderer.toneMappingExposure = parameters.env;
-				}
-
-				const gui = new GUI( { width: 300 } );
-				gui.add( parameters, 'env', 0.2, 3.0, 0.1 ).onChange( onChange );
-
-				const mesh = new HTMLMesh( gui.domElement );
-				mesh.position.x = - 0.75;
-				mesh.position.y = 1.5;
-				mesh.position.z = 0.3;
-				mesh.rotation.y = Math.PI / 4;
-				mesh.scale.setScalar( 2 );
+         
+        setupConsole()
+        setupUrlBar( $('input#uri'), XRF )
 
 				// Add stats.js
 				stats = new Stats();
@@ -149,6 +197,12 @@
           XRF.interactive.add( mesh );
           XRF.interactive.add( statsMesh );
         })
+
+				let fileLoaders = loadFile({
+          ".gltf": (file) => file.arrayBuffer().then( (data) => xrf.navigator.to(file.name,null,xrf.loaders.gltf,data) ),
+          ".glb": (file) => file.arrayBuffer().then( (data) => xrf.navigator.to(file.name,null,xrf.loaders.gltf,data) )
+				})
+				$("#overlay > input[type=submit]").addEventListener("click", fileLoaders )
 
 			}
 
