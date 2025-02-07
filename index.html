@@ -18,8 +18,8 @@
 		<script type="importmap">
 			{
 				"imports": {
-					"three": "https://unpkg.com/three@0.151.3/build/three.module.js",
-					"three/addons/": "https://unpkg.com/three@0.151.3/examples/jsm/"
+					"three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+					"three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
 				}
 			}
 		</script>
@@ -32,7 +32,6 @@
 			import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 			import { Lensflare, LensflareElement } from 'three/addons/objects/Lensflare.js';
 			import { BoxLineGeometry } from 'three/addons/geometries/BoxLineGeometry.js';
-			import { Reflector } from 'three/addons/objects/Reflector.js';
 			import { VRButton } from 'three/addons/webxr/VRButton.js';
 			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 			import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
@@ -41,8 +40,8 @@
 			import { HTMLMesh } from 'three/addons/interactive/HTMLMesh.js';
 			import { InteractiveGroup } from 'three/addons/interactive/InteractiveGroup.js';
 			import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+      import { OculusHandModel } from 'three/addons/webxr/OculusHandModel.js';
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 			import Stats from 'three/addons/libs/stats.module.js';
 
       window.$ = (s) => document.querySelector(s)
@@ -65,7 +64,7 @@
 
 				camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 2000 );
 
-				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer = new THREE.WebGLRenderer( { antialias: true, stencil:true } );
 				renderer.autoClear = false;
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
@@ -160,9 +159,21 @@
 				controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
 				cameraRig.add( controllerGrip1 );
 
+        // hand1
+        const hand1 = renderer.xr.getHand( 0 );
+        const handModel1 = new OculusHandModel( hand1 );
+        hand1.add( handModel1 );
+        cameraRig.add( hand1 );
+
 				const controllerGrip2 = renderer.xr.getControllerGrip( 1 );
 				controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
 				cameraRig.add( controllerGrip2 );
+
+        // hand2
+        const hand2 = renderer.xr.getHand( 1 );
+        const handModel2 = new OculusHandModel( hand2 );
+        hand2.add( handModel2 );
+        cameraRig.add( hand2 );
 
 				// Add stats.js
 				stats = new Stats();
@@ -178,9 +189,6 @@
 				statsMesh.scale.setScalar( 2.5 );
 
         vrbutton.addEventListener('click', () => {
-          // show gui inside VR scene
-          gui.domElement.style.visibility = 'hidden';
-          XRF.interactive.add( mesh );
           XRF.interactive.add( statsMesh );
         })
 
@@ -207,8 +215,8 @@
 
 
 				let fileLoaders = loadFile({
-          ".gltf": (file) => file.arrayBuffer().then( (data) => XRF.navigator.to(file.name,null,XRF.loaders.gltf,data) ),
-          ".glb": (file) => file.arrayBuffer().then( (data) => XRF.navigator.to(file.name,null, XRF.loaders.gltf,data) )
+          ".gltf": (file) => file.arrayBuffer().then( (data) => xrf.navigator.to(file.name,null, (new xrf.loaders.gltf()), data) ),
+          ".glb":  (file) => file.arrayBuffer().then( (data) => xrf.navigator.to(file.name,null, (new xrf.loaders.gltf()), data) )
 				})
 				$("input[type=submit]").addEventListener("click", fileLoaders )
 
@@ -247,5 +255,6 @@
 			animate();
 
 		</script>
+
 	</body>
 </html>
